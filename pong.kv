@@ -1,23 +1,25 @@
 #:kivy 1.0.9
 
+#:set fontName "fonts/SquadaOne.ttf"
+
 <PongBall>:
-    #:set r 50
+    #:set r 34
     size: r, r
     canvas:
         Color:
             rgb: .99, .82, .1, 1
-        Ellipse:
+        Rectangle:
             pos: self.pos
             size: self.size     # we don't put size here, otherwise when we center the widget, the ball won't, because canvas refer to the right up as 0,0
 
 #:set pl_w 26
 #:set pl_h 150
-#:set paddle_edge_h (pl_h * 1/4)
+#:set paddle_edge_h (pl_h * 1/5)
 <PongPaddleEdge>:                   # make the ball bounces different
     size: pl_w, paddle_edge_h
     canvas:
         Color:
-            rgb: 1, 1, 1
+            rgb: self.r, self.g, self.b
         Rectangle:
             size: self.width, paddle_edge_h
             pos: self.pos
@@ -26,18 +28,26 @@
     size: pl_w, pl_h
     paddle_high: paddle_high
     paddle_low: paddle_low
-    canvas:        
-        # Color:
-        #     rgb: 1, 0, 0
+    canvas:
+        Color:
+            rgb: self.r, self.g, self.b
         Rectangle:
-            size: self.width, self.height * 3/4
+            size: self.width, self.height * 4/5
             pos: self.pos
     PongPaddleEdge:
         id: paddle_high
-        pos: (root.x, root.y + (root.height * 3/4))
+        pos: (root.x, root.y + (root.height * 4/5))
     PongPaddleEdge:
         id: paddle_low
         pos: (root.x, root.y - (paddle_edge_h))
+
+<Powerup>:
+    #:set s 20
+    size: s, s
+    canvas:
+        Rectangle:
+            size: self.size
+            pos: self.pos
 
 
 <PongGame>:
@@ -51,7 +61,6 @@
     PongPaddle:
         id: player1
         pos: (0, self.parent.center_y-pl_h/2)
-        # pos: 20, self.parent.height
     PongPaddle:
         id: player2
         pos: (self.parent.width-self.width, self.parent.center_y-pl_h/2)
@@ -61,14 +70,18 @@
 
     # player1 score
     Label:
+        color: root.player1.r, root.player1.g, root.player1.b
         text: str(root.player1.score)
         font_size: 70
+        font_name: fontName
         center_x: root.width * 1/4
         top: root.height * 10/11
     # player2 score
     Label:
+        color: root.player2.r, root.player2.g, root.player2.b
         text: str(root.player2.score)
         font_size: 70
+        font_name: fontName
         center_x: root.width * 3/4
         top: root.height * 10/11
 

@@ -4,6 +4,7 @@ from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProper
 from kivy.vector import Vector
 from kivy.clock import Clock
 from kivy.core.window import Window
+from kivy.graphics import Color
 from random import randint
 from random import uniform as randfloat # random float num beetwen given range
 from time import sleep
@@ -19,7 +20,12 @@ class PongGame(Widget):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
+        self.player1.r = self.player1.paddle_high.r = self.player1.paddle_low.r = 0.06
+        self.player1.g = self.player1.paddle_high.g = self.player1.paddle_low.g = 0.7
+        self.player1.b = self.player1.paddle_high.b = self.player1.paddle_low.b = 0.98
+        self.player2.r = self.player2.paddle_high.r = self.player2.paddle_low.r = 0.85
+        self.player2.g = self.player2.paddle_high.g = self.player2.paddle_low.g = 0
+        self.player2.b = self.player2.paddle_high.b = self.player2.paddle_low.b = 0
     def update(self, dt):
         if self.isGameStarted:
             self.ball.move()
@@ -115,7 +121,12 @@ class PongPaddle(Widget):
     score = NumericProperty(0)
     paddle_high = ObjectProperty(None)
     paddle_low = ObjectProperty(None)
+    r = NumericProperty(1)
+    g = NumericProperty(1)
+    b = NumericProperty(1)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def update_pos(self):
         if not (self.speed < 0 and self.center_y > self.touch_y) and not (self.speed > 0 and self.center_y < self.touch_y):
@@ -168,6 +179,12 @@ class PongPaddle(Widget):
         
 
 class PongPaddleEdge(Widget):
+    r = NumericProperty(0)
+    g = NumericProperty(0)
+    b = NumericProperty(0)
+
+
+class Powerup(Widget):
     pass
 
 class PongApp(App):
