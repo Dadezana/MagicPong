@@ -7,9 +7,13 @@ from kivy.core.window import Window
 from kivy.graphics import Color
 from random import randint
 from random import uniform as randfloat # random float num beetwen given range
-from time import sleep
+from threading import Timer
 
+# timer
+startTime = 0
+endTime = 0
 class PongGame(Widget):
+
 
     ball = ObjectProperty(None) # ball referenced in kv file
     player1 = ObjectProperty(None)
@@ -101,8 +105,12 @@ class PongBall(Widget):
         self.pos = Vector(*self.vel) + self.pos
 
     def reset(self):
-        self.pos = self.parent.center
-        self.serve()
+        self.pos = (
+            self.parent.center_x - self.width/2,
+            self.parent.center_y - self.height/2
+        )
+        self.vel = (0, 0)
+        Timer(interval=2.0, function=self.serve).start()
 
     def serve(self):
         self.vel_x = self.SPEED_X
