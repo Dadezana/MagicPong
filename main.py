@@ -118,8 +118,8 @@ class PongBall(Widget):
         # random ball direction
         a = [1, -1, -1, 1]
         self.vel = (
-            self.vel_x * a[self.vel_x % len(a)],
-            self.vel_y * a[self.vel_y % len(a)]
+            self.vel_x * a[randint(0, 10) % len(a)],
+            self.vel_y * a[randint(0, 10) % len(a)]
         )
         
 class PongPaddle(Widget):
@@ -137,6 +137,11 @@ class PongPaddle(Widget):
         super().__init__(**kwargs)
 
     def update_pos(self):
+
+        if self.touch_y < (0 + self.height/2):
+            self.touch_y = 0 + self.height/2
+        elif self.touch_y > (self.parent.height - self.height/2):
+            self.touch_y = self.parent.height - self.height/2
         if not (self.speed < 0 and self.center_y > self.touch_y) and not (self.speed > 0 and self.center_y < self.touch_y):
             self.speed = 0
             
