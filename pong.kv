@@ -7,7 +7,7 @@
     size: r, r
     canvas:
         Color:
-            rgb: .99, .82, .1, 1
+            rgb: .99, .82, .1, self.opacity
         Rectangle:
             pos: self.pos
             size: self.size     # we don't put size here, otherwise when we center the widget, the ball won't, because canvas refer to the right up as 0,0
@@ -42,9 +42,11 @@
         pos: (root.x, root.y - (paddle_edge_h))
 
 <Powerup>:
-    #:set s 20
+    #:set s 16
     size: s, s
     canvas:
+        Color:
+            rgb: self.r, self.g, self.b
         Rectangle:
             size: self.size
             pos: self.pos
@@ -58,6 +60,14 @@
         Rectangle:
             size: 14, self.height
             pos: (self.center_x-7, 0)
+        Color:
+            rgb: (0.99, 0.82, 0.1) if root.areRulesInverted else (1, 1, 1)
+        Rectangle:
+            size: self.width, root.BORDER_WIDTH
+            pos: 0, 0
+        Rectangle:
+            size: self.width, root.BORDER_WIDTH
+            pos: 0, self.height-root.BORDER_WIDTH
     PongPaddle:
         id: player1
         pos: (0, self.parent.center_y-pl_h/2)
