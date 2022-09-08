@@ -1,6 +1,6 @@
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProperty, BooleanProperty
+from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProperty, BooleanProperty, ListProperty
 from kivy.vector import Vector
 from kivy.clock import Clock
 from functools import partial
@@ -8,7 +8,8 @@ from kivy.core.window import Window
 from kivy.graphics import Color
 from random import randint, choice
 from random import uniform as randfloat # random float num beetwen given range
-# from threading import Timer
+from kivy.graphics.vertex_instructions import Ellipse
+from kivy.graphics.context_instructions import Color
 
 # timer
 startTime = 0
@@ -31,6 +32,8 @@ class PongGame(Widget):
 
     areRulesInverted = BooleanProperty(False) # when yellow powerup is taken, player have to let the ball bounce. If he touch it, the opponent scores a point
     isGameStarted = False
+
+    particles = []
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -184,6 +187,15 @@ class PongGame(Widget):
             if self.ball.vel_x < 0 and self.isSinglePlayer:
                 self.aiBall.gotoxy(self.ball)
                 self.aiBall.set_speed(self.ball)
+
+    # todo: this is just a test, remove it
+        p = Particle()
+        p.init(
+            pos=(touch.x, touch.y), 
+            color=(1, 0, 0)
+        )
+        self.particles.append(p)
+        self.add_widget(p)
        
 class PongBall(Widget):
     # those 2 are used to make the ball bounce off the walls. Every time the values inside "vel" change, they will do the same (they are binded to "vel")
@@ -426,6 +438,30 @@ class AI_Ball(Widget):
             paddle.speed = field.PADDLE_SPEED + paddle.speed_added 
         else:
             paddle.speed = -(field.PADDLE_SPEED + paddle.speed_added)
+
+class Particle(Widget):
+    vel_x = NumericProperty(0)
+    vel_y = NumericProperty(0)
+    vel = ReferenceListProperty(vel_x, vel_y)
+    size = (5, 5)
+    color = (1, 0, 0)
+
+    # both "pos" and "color" must be a list
+    def init(self, pos, color, vel_x=0, vel_y=0):
+        randSize = randint(2, 5)
+        self.size = (randSize, randSize)
+        self.color = color
+        self.pos = pos
+        self.vel_x = vel_x
+        self.vel_y = vel_y
+
+# todo: schedule this function call, so that the particle fade
+    def fade(self):
+        pass
+# todo: the particle will move in a direction while fading
+    def move(self):
+        pass
+
 
 class PongApp(App):
     WIN_W = 1280
