@@ -2,6 +2,16 @@
 
 #:set fontName "fonts/SquadaOne.ttf"
 
+<AI_Ball>:
+    #:set r 34
+    size: r, r
+    canvas:
+        Color:
+            rgb: 1, 1, 1
+        Rectangle:
+            pos: self.pos
+            size: self.size 
+
 <PongBall>:
     #:set r 34
     size: r, r
@@ -56,6 +66,7 @@
     ball: pong_ball     # "ball" variable declared in PongGame
     player1: player1    # "player1" variable declared in PongGame
     player2: player2    # "player2" variable declared in PongGame
+    aiBall: ai_ball
     canvas:
         Rectangle:
             size: 14, self.height
@@ -77,6 +88,10 @@
     PongBall:
         id: pong_ball
         center: self.parent.center  # it will set is center, in the center of the parent widget(PongGame)
+    AI_Ball:
+        id: ai_ball
+        center: self.parent.center
+        opacity: 0            #todo change it to 0
 
     # player1 score
     Label:
