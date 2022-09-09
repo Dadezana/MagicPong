@@ -123,7 +123,7 @@ class PongGame(Widget):
             self.remove_widget(p)
             self.powerups.remove(p)
 
-# checks collisions with walls
+    # checks collisions with walls
     def check_ball_collisions(self):
         if (self.ball.y < 0+self.BORDER_WIDTH) or (self.ball.top > self.height-self.BORDER_WIDTH):
             self.ball.vel = (self.ball.vel_x, -self.ball.vel_y)
@@ -296,8 +296,8 @@ class PongPaddle(Widget):
             sp_y = -ball.SPEED_Y * randfloat(1.1, 1.5) * randfloat(multiplier_min, multiplier_max)
             ball.vel = (ball.vel_x, sp_y)
         else:
-            sp_x = (ball.SPEED_X * randfloat(1.2, 1.6)) if ball.vel_x > 0 else (-ball.SPEED_X * randfloat(1.2, 1.6))    # preserve direction
-            ball.vel = (sp_x, randfloat(-1, 1))
+            sp_x = (ball.SPEED_X * randfloat(1.5, 2)) if ball.vel_x > 0 else (-ball.SPEED_X * randfloat(1.5, 2))    # preserve direction
+            ball.vel = (sp_x, randfloat(-1.3, 1.3))
         
     def reset_paddle_pos(self):
         if not self.y+self.height/2 < self.parent.height*1/3 and not self.y+self.height/2 > self.parent.height*2/3:
@@ -388,8 +388,8 @@ class AI_Ball(Widget):
     
     def set_speed(self, ball):
         isBallInvisible = ball.opacity < 0.5
-        minError = 0.7 if isBallInvisible else 0.9
-        maxError = 1.25 if isBallInvisible else 1.1
+        minError = 0.7 if isBallInvisible else 0.95
+        maxError = 1.25 if isBallInvisible else 1.05
 
         error = randfloat(minError, maxError)
         self.vel = (ball.vel_x * 2 * error, ball.vel_y * 2)
@@ -399,7 +399,7 @@ class AI_Ball(Widget):
             self.vel = (self.vel_x, -self.vel_y)
             return 0
 
-        elif (self.right > field.width):
+        elif (self.right > field.width-field.player2.width):
             self.vel = (0, 0)
             self.move_ai_paddle(field)
             self.pos = (0, 0)
