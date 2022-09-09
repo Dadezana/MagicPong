@@ -10,6 +10,7 @@ from random import randint, choice
 from random import uniform as randfloat # random float num beetwen given range
 from kivy.graphics.vertex_instructions import Ellipse
 from kivy.graphics.context_instructions import Color
+from kivy.graphics import PushMatrix, PopMatrix, Rotate
 
 # timer
 startTime = 0
@@ -33,7 +34,7 @@ class PongGame(Widget):
     areRulesInverted = BooleanProperty(False) # when yellow powerup is taken, player have to let the ball bounce. If he touch it, the opponent scores a point
     isGameStarted = False
 
-    particles = []
+    particles = [[]]
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -106,6 +107,13 @@ class PongGame(Widget):
 
             if p.color == "red":
                 p.increase_ball_speed(self.ball)
+                self.create_particles(
+                    pos=(p.x, p.y), 
+                    color=(1, 0, 0), 
+                    min_speed=13, 
+                    max_speed=14, 
+                    repeat=True
+                )
 
             elif p.color == "green":
                 p.decrease_opacity(self.ball, 0.15, resetOpacity=True)
@@ -125,6 +133,8 @@ class PongGame(Widget):
 
             self.remove_widget(p)
             self.powerups.remove(p)
+
+        self.handle_particles()
 
 # checks collisions with walls
     def check_ball_collisions(self):
@@ -147,6 +157,41 @@ class PongGame(Widget):
                 self.areRulesInverted = False
                 return 0
             return 1
+
+    def handle_particles(self):
+        for particle_group in self.particles:
+            for p in particle_group:
+                p.move()
+                p.fade()
+                if p.opacity < -0.2:
+                    for i in particle_group:
+                        self.remove_widget(i)
+                    self.particles.remove(particle_group)
+                    break
+
+    def create_particles(self, pos, color=(1, 1, 1), min_speed=5, max_speed=20, repeat=False):
+        num = randint(25, 50)
+        vel_offset = 360/num    # velocity offset beetwen two near particles
+        wid_rotation = 0
+
+        particle_group = []
+        
+        for n in range(num):
+            p = Particle()
+            p.init(
+                pos=pos,
+                color=color,
+                min_speed=min_speed,
+                max_speed=max_speed,
+                rotation=wid_rotation
+            )
+            wid_rotation += vel_offset
+            self.add_widget(p)
+            particle_group.append(p)
+
+        self.particles.append(particle_group)
+        if repeat == True:
+            Clock.schedule_once(partial(self.create_particles, pos, color, min_speed, max_speed), 0.05)
 
     def on_touch_move(self, touch):
         if touch.x < self.width*1/3:
@@ -187,15 +232,7 @@ class PongGame(Widget):
             if self.ball.vel_x < 0 and self.isSinglePlayer:
                 self.aiBall.gotoxy(self.ball)
                 self.aiBall.set_speed(self.ball)
-
-    # todo: this is just a test, remove it
-        p = Particle()
-        p.init(
-            pos=(touch.x, touch.y), 
-            color=(1, 0, 0)
-        )
-        self.particles.append(p)
-        self.add_widget(p)
+        
        
 class PongBall(Widget):
     # those 2 are used to make the ball bounce off the walls. Every time the values inside "vel" change, they will do the same (they are binded to "vel")
@@ -208,7 +245,7 @@ class PongBall(Widget):
     SPEED_Y = 10
     MAX_VEL = 15
     lastCollide = None  #! Do not use this to modify player variables!
-
+    
     def move(self):
         self.pos = Vector(*self.vel) + self.pos
 
@@ -445,22 +482,30 @@ class Particle(Widget):
     vel = ReferenceListProperty(vel_x, vel_y)
     size = (5, 5)
     color = (1, 0, 0)
+    opacity_decrease = 1.0/30.0
 
     # both "pos" and "color" must be a list
-    def init(self, pos, color, vel_x=0, vel_y=0):
+    def init(self, pos, color, rotation, min_speed, max_speed):
         randSize = randint(2, 5)
         self.size = (randSize, randSize)
         self.color = color
         self.pos = pos
-        self.vel_x = vel_x
-        self.vel_y = vel_y
+        self.vel_x = randint(min_speed, max_speed)
+        self.vel_y = 0
+        self.opacity = 1
+        # rotate the particle
+        with self.canvas.before:
+            PushMatrix()
+            self.rotation = Rotate(angle=rotation, origin=pos)    # "pos" is the point where the particles are generated
+        # if you don't use this, all the widget will rotate
+        with self.canvas.after:
+            PopMatrix()
 
-# todo: schedule this function call, so that the particle fade
     def fade(self):
-        pass
-# todo: the particle will move in a direction while fading
+        self.opacity -= self.opacity_decrease
+
     def move(self):
-        pass
+        self.pos = Vector(*self.vel) + self.pos
 
 
 class PongApp(App):
