@@ -1,6 +1,6 @@
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProperty, BooleanProperty, ListProperty
+from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProperty, BooleanProperty, StringProperty
 from kivy.vector import Vector
 from kivy.clock import Clock
 from functools import partial
@@ -378,33 +378,26 @@ class Powerup(Widget):
         "green": 4,
         "yellow": 5
     }
-    r = NumericProperty(0)
-    g = NumericProperty(0)
-    b = NumericProperty(0)
+    
+    img = StringProperty("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.color = choice( list(self.powerup_types.keys()) )
         if self.color == "red":
-            self.r = 1
-            self.g = 0
-            self.b = 0
+            self.img = "img/red.png"
+
         elif self.color == "yellow":
-            self.r = 0.99
-            self.g = 0.82
-            self.b =  0.1
+            self.img = "img/yellow.png"
+
         elif self.color == "purple":
-            self.r = 0.55
-            self.g = 0 
-            self.b = 0.76
+            self.img = "img/purple.png"
+
         elif self.color == "green":
-            self.r = 0.37
-            self.g = 0.83 
-            self.b = 0.03
+            self.img = "img/lime.png"
+
         else:
-            self.r = 0
-            self.g = 0.15
-            self.b = 1
+            self.img = "img/blue.png"
 
     # red powerup
     def increase_ball_speed(self, ball):

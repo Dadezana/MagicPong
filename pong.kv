@@ -18,7 +18,7 @@
     canvas:
         Color:
             rgb: .99, .82, .1, self.opacity
-        Rectangle:
+        Ellipse:
             pos: self.pos
             size: self.size     # we don't put size here, otherwise when we center the widget, the ball won't, because canvas refer to the right up as 0,0
 
@@ -52,14 +52,18 @@
         pos: (root.x, root.y - (paddle_edge_h))
 
 <Powerup>:
-    #:set s 16
+    #:set s 45
     size: s, s
-    canvas:
-        Color:
-            rgb: self.r, self.g, self.b
-        Rectangle:
-            size: self.size
-            pos: self.pos
+    Image:
+        source: root.img
+        size: root.size
+        pos: root.pos
+    # canvas:
+    #     Color:
+    #         rgb: self.r, self.g, self.b
+    #     Rectangle:
+    #         size: self.size
+    #         pos: self.pos
 
 <Particle>:
     size: self.size
