@@ -28,7 +28,10 @@ class PongGame(Widget):
     ball = ObjectProperty(None) # ball referenced in kv file
     player1 = ObjectProperty(None)
     player2 = ObjectProperty(None)
+    
     aiBall = ObjectProperty(None)
+    powerup_aiball = None   # used every time the powerup is taken to recalculate the position of the paddle
+    
     PADDLE_SPEED = 10
 
     areRulesInverted = BooleanProperty(False) # when yellow powerup is taken, player have to let the ball bounce. If he touch it, the opponent scores a point
@@ -44,7 +47,11 @@ class PongGame(Widget):
         self.player2.r = self.player2.paddle_high.r = self.player2.paddle_low.r = 0.85
         self.player2.g = self.player2.paddle_high.g = self.player2.paddle_low.g = 0
         self.player2.b = self.player2.paddle_high.b = self.player2.paddle_low.b = 0
+        self.powerup_aiball = AI_Ball()
+        self.powerup_aiball.opacity = 0
+        self.add_widget(self.powerup_aiball)
         Clock.schedule_once(self.create_powerup, randint(3, 10))
+        Clock.schedule_interval(self.check_ball_collisions, 2.0/60.0)
 
     def create_powerup(self, dt):
         if not self.isGameStarted:
@@ -63,16 +70,11 @@ class PongGame(Widget):
 
         self.ball.move()
         self.aiBall.move()
+        self.powerup_aiball.move()
 
     # check collisions with wall
         self.aiBall.check_border_collisions(self)
-        res = self.check_ball_collisions()  # 1: player1 scored. 2: player2 scored
-        if res == 1:
-            self.player1.score += 1
-            self.ball.reset(self.aiBall)
-        elif res == 2:
-            self.player2.score += 1
-            self.ball.reset(self.aiBall)
+        self.powerup_aiball.check_border_collisions(self)         
 
         self.player1.update_pos()
         self.player2.update_pos()
@@ -102,8 +104,8 @@ class PongGame(Widget):
         isPowerupTaken, p = self.ball.is_touching_powerup(self.powerups)
         if isPowerupTaken:
             # recalculate final position after a powerup is taken
-            self.aiBall.gotoxy(self.ball)
-            self.aiBall.set_speed(self.ball)
+            self.powerup_aiball.gotoxy(self.ball)
+            self.powerup_aiball.set_speed(self.ball)
 
             if p.color == "red":
                 p.increase_ball_speed(self.ball)
@@ -119,7 +121,7 @@ class PongGame(Widget):
                 p.decrease_opacity(self.ball, 0.15, resetOpacity=True)
 
             elif p.color == "yellow":
-                p.invert_rules(self, True)
+                p.invert_rules(self)
 
             elif p.color == "purple":
                 p.increase_player_speed(self.ball.lastCollide, 8, resetSpeed=True)
@@ -137,10 +139,10 @@ class PongGame(Widget):
         self.handle_particles()
 
 # checks collisions with walls
-    def check_ball_collisions(self):
+    def check_ball_collisions(self, dt=0):
         if (self.ball.y < 0+self.BORDER_WIDTH) or (self.ball.top > self.height-self.BORDER_WIDTH):
             self.ball.vel = (self.ball.vel_x, -self.ball.vel_y)
-            return 0
+            return
 
         if (self.ball.x < 0):
             if self.areRulesInverted:
@@ -148,15 +150,21 @@ class PongGame(Widget):
                 self.areRulesInverted = False
                 self.aiBall.gotoxy(self.ball)
                 self.aiBall.set_speed(self.ball)
-                return 0
-            return 2
+                if self.isSinglePlayer:
+                    self.player2.reset_paddle_pos()
+                return
+            self.player2.score += 1
+            self.ball.reset(self.aiBall)
 
         elif (self.ball.right > self.width):
             if self.areRulesInverted:
                 self.ball.vel = (-self.ball.vel_x, self.ball.vel_y)
                 self.areRulesInverted = False
-                return 0
-            return 1
+                if self.isSinglePlayer:
+                    self.player2.reset_paddle_pos()
+                return
+            self.player1.score += 1
+            self.ball.reset(self.aiBall)
 
     def handle_particles(self):
         for particle_group in self.particles:
@@ -169,7 +177,7 @@ class PongGame(Widget):
                     self.particles.remove(particle_group)
                     break
 
-    def create_particles(self, pos, color=(1, 1, 1), min_speed=5, max_speed=20, repeat=False):
+    def create_particles(self, pos, color=(1, 1, 1), min_speed=5, max_speed=20, repeat=False, dt=0):
         num = randint(25, 50)
         vel_offset = 360/num    # velocity offset beetwen two near particles
         wid_rotation = 0
@@ -420,8 +428,8 @@ class Powerup(Widget):
             Clock.schedule_once(partial(self.decrease_opacity, ball, 1), 1.3)
     
     # yellow powerup
-    def invert_rules(self, game, canInvert):
-        game.areRulesInverted = canInvert
+    def invert_rules(self, game):
+        game.areRulesInverted = True
 
 
 class AI_Ball(Widget):
