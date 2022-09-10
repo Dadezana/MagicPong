@@ -1,20 +1,16 @@
 from kivy.app import App
 from kivy.uix.widget import Widget
-from kivy.properties import NumericProperty, ReferenceListProperty, ObjectProperty, BooleanProperty, StringProperty
-from kivy.vector import Vector
+from kivy.properties import NumericProperty, ObjectProperty, BooleanProperty
 from kivy.clock import Clock
 from functools import partial
 from kivy.core.window import Window
-from kivy.graphics import Color
-from random import randint, choice
-from random import uniform as randfloat # random float num beetwen given range
-from kivy.graphics.vertex_instructions import Ellipse
-from kivy.graphics.context_instructions import Color
-from kivy.graphics import PushMatrix, PopMatrix, Rotate
+from random import randint
 
-# timer
-startTime = 0
-endTime = 0
+from particle import Particle
+from powerup import Powerup
+from ball import PongBall, AI_Ball
+from paddle import PongPaddle
+
 class PongGame(Widget):
 
     BORDER_WIDTH = NumericProperty(14)   # field's border
@@ -138,7 +134,7 @@ class PongGame(Widget):
 
         self.handle_particles()
 
-# checks collisions with walls
+    # checks collisions with walls
     def check_ball_collisions(self, dt=0):
         if (self.ball.y < 0+self.BORDER_WIDTH) or (self.ball.top > self.height-self.BORDER_WIDTH):
             self.ball.vel = (self.ball.vel_x, -self.ball.vel_y)
@@ -241,272 +237,6 @@ class PongGame(Widget):
                 self.aiBall.gotoxy(self.ball)
                 self.aiBall.set_speed(self.ball)
         
-       
-class PongBall(Widget):
-    # those 2 are used to make the ball bounce off the walls. Every time the values inside "vel" change, they will do the same (they are binded to "vel")
-    vel_x = NumericProperty(0)
-    vel_y = NumericProperty(0)
-    vel = ReferenceListProperty(vel_x, vel_y)       #! use always this to apply direction and speed to the ball
-    opacity = NumericProperty(1)
-    # those are used to keep the ball at a constant speed, since "vel_x" and "vel_y" are binded to "vel" and they will increase continuously
-    SPEED_X = 10
-    SPEED_Y = 10
-    MAX_VEL = 15
-    lastCollide = None  #! Do not use this to modify player variables!
-    
-    def move(self):
-        self.pos = Vector(*self.vel) + self.pos
-
-    def reset(self, aiBall):
-        self.pos = (
-            self.parent.center_x - self.width/2,
-            self.parent.center_y - self.height/2
-        )
-        self.vel = (0, 0)
-        Clock.schedule_once(partial(self.serve, aiBall), 2)
-
-    def serve(self, aiBall, dt=0):
-        self.vel_x = self.SPEED_X
-        self.vel_y = self.SPEED_Y
-        # random ball direction
-        a = [1, -1, -1, 1]
-        self.vel = (
-            self.vel_x * a[randint(0, 10) % len(a)],
-            self.vel_y * a[randint(0, 10) % len(a)]
-        )
-        aiBall.gotoxy(self)
-        # if self.vel_x < 0:
-        aiBall.set_speed(self)
-        
-
-    def is_touching_powerup(self, powerups):
-        for p in powerups:
-            if self.collide_widget(p):
-                return True, p
-        return False, None
-        
-class PongPaddle(Widget):
-    speed = 0       # speed of paddles
-    touch_y = 0     # y point to reach when screen touched. Refers to the center of the paddle
-    timer = 0
-    score = NumericProperty(0)
-    paddle_high = ObjectProperty(None)
-    paddle_low = ObjectProperty (None)
-    r = NumericProperty(1)
-    g = NumericProperty(1)
-    b = NumericProperty(1)
-    speed_added = 0             # increase or decrease paddle speed when touching purple/blue powerups
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-    def update_pos(self):
-
-        if self.speed < 0 and self.y+self.height/2 < self.touch_y:
-            self.speed = 0
-            return
-        if self.speed > 0 and self.y+self.height/2 > self.touch_y:
-            self.speed = 0
-            return
-
-        next_y = self.y + self.speed    # y to reach next frame
-
-        if next_y > self.parent.height - self.parent.BORDER_WIDTH - self.height:
-            next_y = self.parent.height - self.parent.BORDER_WIDTH - self.height
-            self.speed = 0
-        elif next_y < 45:
-            next_y = 45     # 45 because that seems the top y of the bottom border
-            self.speed = 0
-
-        self.y = next_y
-        
-
-    def bounce_ball(self, ball, randomDir=False):
-        self.timer -= 1
-        if self.timer <= 0:
-            if self.collide_widget(ball):
-                self.determine_ball_dir(ball, randomDir)
-                ball.vel = (-ball.vel_x, ball.vel_y)
-                self.timer = 60         # avoid the ball getting stuck in the paddle
-                if randomDir:
-                    self.reset_paddle_pos()
-                return True
-        return False
-
-    def determine_ball_dir(self, ball, randomDir=False):
-
-        # if the ball touches the edges of the paddle, the angles made by the ball will be sharpest (does not apply in straight)
-        hasTouchedEdge = self.paddle_high.collide_widget(ball) or self.paddle_low.collide_widget(ball)
-        multiplier_min = 1.2 if hasTouchedEdge else 1
-        multiplier_max = 1.5 if hasTouchedEdge else 1
-
-        direction = self.speed      # paddle direction
-
-        if randomDir:
-            dirs = [-1, 0, 1]   # -1: down, 0: straight, 1: up
-            direction = choice(dirs)
-
-        if direction > 0:
-            sp_y = ball.SPEED_Y * randfloat(1.1, 1.5) * randfloat(multiplier_min, multiplier_max)
-            ball.vel = (ball.vel_x, sp_y)
-        elif direction < 0:
-            sp_y = -ball.SPEED_Y * randfloat(1.1, 1.5) * randfloat(multiplier_min, multiplier_max)
-            ball.vel = (ball.vel_x, sp_y)
-        else:
-            sp_x = (ball.SPEED_X * randfloat(1.5, 2)) if ball.vel_x > 0 else (-ball.SPEED_X * randfloat(1.5, 2))    # preserve direction
-            ball.vel = (sp_x, randfloat(-1.3, 1.3))
-        
-    def reset_paddle_pos(self):
-        if not self.y+self.height/2 < self.parent.height*1/3 and not self.y+self.height/2 > self.parent.height*2/3:
-            return
-        
-        self.touch_y = randint(self.parent.height*1/3, self.parent.height*2/3)
-        self.speed = (self.parent.PADDLE_SPEED + self.speed_added) if self.touch_y > self.y+self.height/2 else -(self.parent.PADDLE_SPEED + self.speed_added)
-        
-
-class PongPaddleEdge(Widget):
-    r = NumericProperty(0)
-    g = NumericProperty(0)
-    b = NumericProperty(0)
-
-
-class Powerup(Widget):
-    powerup_types = {
-        "red": 1,
-        "purple": 2,
-        "blue": 3,
-        "green": 4,
-        "yellow": 5
-    }
-    
-    img = StringProperty("")
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.color = choice( list(self.powerup_types.keys()) )
-        if self.color == "red":
-            self.img = "img/red.png"
-
-        elif self.color == "yellow":
-            self.img = "img/yellow.png"
-
-        elif self.color == "purple":
-            self.img = "img/purple.png"
-
-        elif self.color == "green":
-            self.img = "img/lime.png"
-
-        else:
-            self.img = "img/blue.png"
-
-    # red powerup
-    def increase_ball_speed(self, ball):
-        ball.vel = (
-            ball.vel_x * randfloat(1.2, 2),
-            ball.vel_y * randfloat(1.2, 2)
-        )
-
-    # purple/blue powerup
-    def increase_player_speed(self, player, sp, dt=0, resetSpeed=False):
-        player.speed_added = sp
-        if resetSpeed:
-            Clock.schedule_once(partial(self.increase_player_speed, player, 0), 5)
-
-    # green powerup
-    def decrease_opacity(self, ball, opacity, dt=0, resetOpacity=False):
-        ball.opacity = opacity
-        if resetOpacity:
-            Clock.schedule_once(partial(self.decrease_opacity, ball, 0), 0.2)
-            Clock.schedule_once(partial(self.decrease_opacity, ball, 0.15), 0.5)
-            Clock.schedule_once(partial(self.decrease_opacity, ball, 1), 1.3)
-    
-    # yellow powerup
-    def invert_rules(self, game):
-        game.areRulesInverted = True
-
-
-class AI_Ball(Widget):
-    vel_x = NumericProperty(0)
-    vel_y = NumericProperty(0)
-    vel = ReferenceListProperty(vel_x, vel_y)
-
-    def move(self):
-        self.pos = Vector(*self.vel) + self.pos
-
-    def gotoxy(self, ball):
-        self.pos = (ball.x, ball.y)
-    
-    def set_speed(self, ball):
-        isBallInvisible = ball.opacity < 0.5
-        minError = 0.7 if isBallInvisible else 0.95
-        maxError = 1.25 if isBallInvisible else 1.05
-
-        error = randfloat(minError, maxError)
-        self.vel = (ball.vel_x * 2 * error, ball.vel_y * 2)
-
-    def check_border_collisions(self, field):
-        if (self.y < 0+field.BORDER_WIDTH) or (self.top > field.height-field.BORDER_WIDTH):
-            self.vel = (self.vel_x, -self.vel_y)
-            return 0
-
-        elif (self.right > field.width-field.player2.width):
-            self.vel = (0, 0)
-            self.move_ai_paddle(field)
-            self.pos = (0, 0)
-            return 1
-    
-    def move_ai_paddle(self, field):
-        paddle = field.player2
-
-        # if rules are inverted the AI will move the paddle to avoid the ball
-        if not field.areRulesInverted:
-            paddle.touch_y = self.y
-        else:
-            if self.y > field.height*2/3:
-                paddle.touch_y = randint(0, field.height*1/3)
-            elif self.y < field.height*1/3:
-                paddle.touch_y = randint(field.height*2/3, field.height)
-            else:
-                paddle.touch_y = randint(field.height*2/3, field.height-paddle.height/2) if paddle.y+paddle.height/2 > 0 else randint(paddle.height/2, field.height*1/3)
-
-
-        # move the player up/down
-        paddle_center_y = paddle.y + paddle.height/2
-        if paddle_center_y < paddle.touch_y:
-            paddle.speed = field.PADDLE_SPEED + paddle.speed_added 
-        else:
-            paddle.speed = -(field.PADDLE_SPEED + paddle.speed_added)
-
-class Particle(Widget):
-    vel_x = NumericProperty(0)
-    vel_y = NumericProperty(0)
-    vel = ReferenceListProperty(vel_x, vel_y)
-    size = (5, 5)
-    color = (1, 0, 0)
-    opacity_decrease = 1.0/30.0
-
-    # both "pos" and "color" must be a list
-    def init(self, pos, color, rotation, min_speed, max_speed):
-        randSize = randint(2, 5)
-        self.size = (randSize, randSize)
-        self.color = color
-        self.pos = pos
-        self.vel_x = randint(min_speed, max_speed)
-        self.vel_y = 0
-        self.opacity = 1
-        # rotate the particle
-        with self.canvas.before:
-            PushMatrix()
-            self.rotation = Rotate(angle=rotation, origin=pos)    # "pos" is the point where the particles are generated
-        # if you don't use this, all the widget will rotate
-        with self.canvas.after:
-            PopMatrix()
-
-    def fade(self):
-        self.opacity -= self.opacity_decrease
-
-    def move(self):
-        self.pos = Vector(*self.vel) + self.pos
 
 
 class PongApp(App):
