@@ -29,6 +29,7 @@ class PongGame(Widget):
     powerup_aiball = None   # used every time the powerup is taken to recalculate the position of the paddle
     
     PADDLE_SPEED = 10
+    MAX_POWERUPS = 10
 
     areRulesInverted = BooleanProperty(False) # when yellow powerup is taken, player have to let the ball bounce. If he touch it, the opponent scores a point
     isGameStarted = False
@@ -50,15 +51,15 @@ class PongGame(Widget):
         Clock.schedule_interval(self.check_ball_collisions, 2.0/60.0)
 
     def create_powerup(self, dt):
+        Clock.schedule_once(self.create_powerup, randint(3, 10))
+        if len(self.particles) >= self.MAX_POWERUPS:
+            return
         if not self.isGameStarted:
-            Clock.schedule_once(self.create_powerup, 5)
             return
         p = Powerup()
         p.pos = randint(100, self.width-100), randint(50, self.height-50)
         self.add_widget(p)
         self.powerups.append(p)
-        Clock.schedule_once(self.create_powerup, randint(3, 10))
-        # print("Powerup created")
 
     def update(self, dt):
         if not self.isGameStarted:
@@ -136,8 +137,17 @@ class PongGame(Widget):
 
     # checks collisions with walls
     def check_ball_collisions(self, dt=0):
-        if (self.ball.y < 0+self.BORDER_WIDTH) or (self.ball.top > self.height-self.BORDER_WIDTH):
-            self.ball.vel = (self.ball.vel_x, -self.ball.vel_y)
+        if (self.ball.y < 0+self.BORDER_WIDTH):
+            self.ball.vel = (
+                self.ball.vel_x, 
+                -self.ball.vel_y if (self.ball.y < self.height/2) and (self.ball.vel_y < 0) else self.ball.vel_y
+            )
+            return
+        elif (self.ball.top > self.height-self.BORDER_WIDTH):
+            self.ball.vel = (
+                self.ball.vel_x, 
+                -self.ball.vel_y if (self.ball.y > self.height/2) and (self.ball.vel_y > 0) else self.ball.vel_y
+            )
             return
 
         if (self.ball.x < 0):
