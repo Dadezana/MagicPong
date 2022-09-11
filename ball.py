@@ -20,15 +20,15 @@ class PongBall(Widget):
     def move(self):
         self.pos = Vector(*self.vel) + self.pos
 
-    def reset(self, aiBall):
+    def reset(self):
         self.pos = (
             self.parent.center_x - self.width/2,
             self.parent.center_y - self.height/2
         )
         self.vel = (0, 0)
-        Clock.schedule_once(partial(self.serve, aiBall), 2)
+        Clock.schedule_once(partial(self.serve), 2)
 
-    def serve(self, aiBall, dt=0):
+    def serve(self, dt=0):
         self.vel_x = self.SPEED_X
         self.vel_y = self.SPEED_Y
         # random ball direction
@@ -36,11 +36,7 @@ class PongBall(Widget):
         self.vel = (
             self.vel_x * a[randint(0, 10) % len(a)],
             self.vel_y * a[randint(0, 10) % len(a)]
-        )
-        aiBall.gotoxy(self)
-        # if self.vel_x < 0:
-        aiBall.set_speed(self)
-        
+        ) 
 
     def is_touching_powerup(self, powerups):
         for p in powerups:
@@ -72,13 +68,16 @@ class AI_Ball(Widget):
     def check_border_collisions(self, field):
         if (self.y < 0+field.BORDER_WIDTH) or (self.top > field.height-field.BORDER_WIDTH):
             self.vel = (self.vel_x, -self.vel_y)
-            return 0
+            return False
 
         elif (self.right > field.width-field.player2.width):
             self.vel = (0, 0)
             self.move_ai_paddle(field)
             self.pos = (0, 0)
-            return 1
+            return True
+
+        elif self.x < 0:
+            return True
     
     def move_ai_paddle(self, field):
         paddle = field.player2
