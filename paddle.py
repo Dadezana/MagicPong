@@ -2,7 +2,7 @@ from kivy.uix.widget import Widget
 from kivy.clock import Clock
 from kivy.vector import Vector
 from kivy.properties import NumericProperty, ObjectProperty
-from random import choice, uniform as randfloat
+from random import choice, randint, uniform as randfloat
 
 
 class PongPaddle(Widget):
@@ -39,9 +39,7 @@ class PongPaddle(Widget):
             self.speed = 0
 
         self.y = next_y
-
-    def is_colliding_with(self, ball, isSinglePlayer=False):
-        return self.bounce_ball(ball, isSinglePlayer)       
+        
 
     def bounce_ball(self, ball, randomDir=False):
         self.timer -= 1
@@ -82,7 +80,7 @@ class PongPaddle(Widget):
         if not self.y+self.height/2 < self.parent.height*1/3 and not self.y+self.height/2 > self.parent.height*2/3:
             return
         
-        self.touch_y = randfloat(self.parent.height*1/3, self.parent.height*2/3)
+        self.touch_y = randint(self.parent.height*1/3, self.parent.height*2/3)
         self.speed = (self.parent.PADDLE_SPEED + self.speed_added) if self.touch_y > self.y+self.height/2 else -(self.parent.PADDLE_SPEED + self.speed_added)
         
 

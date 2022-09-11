@@ -21,13 +21,13 @@ class PongGame(Widget):
     isSinglePlayer = True
 
     powerups = []
-    MAX_POWERUPS = 10
     ball = ObjectProperty(None) # ball referenced in kv file
     player1 = ObjectProperty(None)
     player2 = ObjectProperty(None)
     
-    aiBalls = []
-
+    aiBall = ObjectProperty(None)
+    powerup_aiball = None   # used every time the powerup is taken to recalculate the position of the paddle
+    
     PADDLE_SPEED = 10
 
     areRulesInverted = BooleanProperty(False) # when yellow powerup is taken, player have to let the ball bounce. If he touch it, the opponent scores a point
@@ -43,57 +43,65 @@ class PongGame(Widget):
         self.player2.r = self.player2.paddle_high.r = self.player2.paddle_low.r = 0.85
         self.player2.g = self.player2.paddle_high.g = self.player2.paddle_low.g = 0
         self.player2.b = self.player2.paddle_high.b = self.player2.paddle_low.b = 0
+        self.powerup_aiball = AI_Ball()
+        self.powerup_aiball.opacity = 0
+        self.add_widget(self.powerup_aiball)
         Clock.schedule_once(self.create_powerup, randint(3, 10))
         Clock.schedule_interval(self.check_ball_collisions, 2.0/60.0)
 
     def create_powerup(self, dt):
-        Clock.schedule_once(self.create_powerup, randint(3, 10))
-
-        if not self.isGameStarted or len(self.powerups) >= self.MAX_POWERUPS:
+        if not self.isGameStarted:
+            Clock.schedule_once(self.create_powerup, 5)
             return
-
         p = Powerup()
         p.pos = randint(100, self.width-100), randint(50, self.height-50)
         self.add_widget(p)
         self.powerups.append(p)
+        Clock.schedule_once(self.create_powerup, randint(3, 10))
+        # print("Powerup created")
 
     def update(self, dt):
         if not self.isGameStarted:
             return
 
         self.ball.move()
-        self.move_ai_balls()
-        self.check_ai_balls_collisions()
+        self.aiBall.move()
+        self.powerup_aiball.move()
+
+    # check collisions with wall
+        self.aiBall.check_border_collisions(self)
+        self.powerup_aiball.check_border_collisions(self)         
 
         self.player1.update_pos()
         self.player2.update_pos()
 
 
-        if self.player1.is_colliding_with(self.ball):
+        if self.player1.bounce_ball(self.ball):
 
             self.ball.lastCollide = self.player1
 
             if self.areRulesInverted:
                 self.player2.score += 1
                 self.areRulesInverted = False
-                self.ball.reset()
-                Clock.schedule_once(self.create_ai_ball, 2.1)
+                self.ball.reset(self.aiBall)
+            
+            self.aiBall.gotoxy(self.ball)
+            self.aiBall.set_speed(self.ball)
 
-            self.create_ai_ball()
-
-        elif self.player2.is_colliding_with(self.ball, self.isSinglePlayer):
+        elif self.player2.bounce_ball(self.ball, self.isSinglePlayer):
 
             self.ball.lastCollide = self.player2
 
             if self.areRulesInverted:
                 self.player1.score += 1
                 self.areRulesInverted = False
-                self.ball.reset()
-                Clock.schedule_once(self.create_ai_ball, 2.1)
+                self.ball.reset(self.aiBall)
     # check collision with powerups
         isPowerupTaken, p = self.ball.is_touching_powerup(self.powerups)
         if isPowerupTaken:
-            self.create_ai_ball()
+            # recalculate final position after a powerup is taken
+            self.powerup_aiball.gotoxy(self.ball)
+            self.powerup_aiball.set_speed(self.ball)
 
             if p.color == "red":
                 p.increase_ball_speed(self.ball)
@@ -126,47 +134,23 @@ class PongGame(Widget):
 
         self.handle_particles()
 
-
-    def move_ai_balls(self):
-        for ai_ball in self.aiBalls:
-            ai_ball.move()
-
-    def check_ai_balls_collisions(self):
-        for ai_ball in self.aiBalls:
-            is_out_of_field = ai_ball.check_border_collisions(self)    # if the ball is out of the field
-            if is_out_of_field:
-                self.aiBalls.remove(ai_ball)
-                self.remove_widget(ai_ball)
-
-    def create_ai_ball(self, dt=0):
-        ai_ball = AI_Ball()
-        ai_ball.opacity = 0
-
-        ai_ball.gotoxy(self.ball)
-        ai_ball.set_speed(self.ball)
-
-        self.aiBalls.append(ai_ball)
-        self.add_widget(ai_ball)
-
     # checks collisions with walls
     def check_ball_collisions(self, dt=0):
         if (self.ball.y < 0+self.BORDER_WIDTH) or (self.ball.top > self.height-self.BORDER_WIDTH):
             self.ball.vel = (self.ball.vel_x, -self.ball.vel_y)
-            if self.ball.vel_x > 0:
-                self.create_ai_ball()
             return
 
         if (self.ball.x < 0):
             if self.areRulesInverted:
                 self.ball.vel = (-self.ball.vel_x, self.ball.vel_y)
                 self.areRulesInverted = False
-                self.create_ai_ball()
+                self.aiBall.gotoxy(self.ball)
+                self.aiBall.set_speed(self.ball)
                 if self.isSinglePlayer:
                     self.player2.reset_paddle_pos()
                 return
             self.player2.score += 1
-            self.ball.reset()
-            Clock.schedule_once(self.create_ai_ball, 2.1)
+            self.ball.reset(self.aiBall)
 
         elif (self.ball.right > self.width):
             if self.areRulesInverted:
@@ -176,8 +160,7 @@ class PongGame(Widget):
                     self.player2.reset_paddle_pos()
                 return
             self.player1.score += 1
-            self.ball.reset()
-            Clock.schedule_once(self.create_ai_ball, 2.1)
+            self.ball.reset(self.aiBall)
 
     def handle_particles(self):
         for particle_group in self.particles:
@@ -249,11 +232,10 @@ class PongGame(Widget):
     def on_touch_down(self, touch):
         if not self.isGameStarted:
             self.isGameStarted = True
-            self.ball.reset()
-            Clock.schedule_once(self.create_ai_ball, 2.1)
-            # if self.ball.vel_x < 0 and self.isSinglePlayer:
-            #     self.aiBall.gotoxy(self.ball)
-            #     self.aiBall.set_speed(self.ball)
+            self.ball.reset(self.aiBall)
+            if self.ball.vel_x < 0 and self.isSinglePlayer:
+                self.aiBall.gotoxy(self.ball)
+                self.aiBall.set_speed(self.ball)
         
 
 
