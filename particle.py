@@ -11,14 +11,18 @@ class Particle(Widget):
     vel_y = NumericProperty(0)
     vel = ReferenceListProperty(vel_x, vel_y)
     size = (5, 5)
-    color = (1, 0, 0)
+    r = NumericProperty(0)
+    g = NumericProperty(0)
+    b = NumericProperty(0)
     opacity_decrease = 1.0/30.0
 
     # both "pos" and "color" must be a list
-    def init(self, pos, color, rotation, min_speed, max_speed):
+    def init(self, pos, r,g,b, rotation, min_speed, max_speed):
         randSize = randint(2, 5)
         self.size = (randSize, randSize)
-        self.color = color
+        self.r = r
+        self.g = g
+        self.b = b
         self.pos = pos
         self.vel_x = randint(min_speed, max_speed)
         self.vel_y = 0

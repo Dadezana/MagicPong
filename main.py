@@ -57,7 +57,7 @@ class PongGame(Widget):
         if not self.isGameStarted:
             return
         p = Powerup()
-        p.pos = randint(100, self.width-100), randint(50, self.height-50)
+        p.pos = randint(200, self.width-200), randint(80, self.height-80)
         self.add_widget(p)
         self.powerups.append(p)
 
@@ -108,9 +108,7 @@ class PongGame(Widget):
                 p.increase_ball_speed(self.ball)
                 self.create_particles(
                     pos=(p.x, p.y), 
-                    color=(1, 0, 0), 
-                    min_speed=13, 
-                    max_speed=14, 
+                    r=1, g=0, b=0,
                     repeat=True
                 )
 
@@ -119,6 +117,10 @@ class PongGame(Widget):
 
             elif p.color == "yellow":
                 p.invert_rules(self)
+                self.create_particles(
+                    pos=(p.x, p.y),
+                    r=0.99, g=0.82, b=0.1
+                )
 
             elif p.color == "purple":
                 p.increase_player_speed(self.ball.lastCollide, 8, resetSpeed=True)
@@ -183,7 +185,7 @@ class PongGame(Widget):
                     self.particles.remove(particle_group)
                     break
 
-    def create_particles(self, pos, color=(1, 1, 1), min_speed=5, max_speed=20, repeat=False, dt=0):
+    def create_particles(self, pos, r,g,b, min_speed=13, max_speed=14, repeat=False, dt=0):
         num = randint(25, 50)
         vel_offset = 360/num    # velocity offset beetwen two near particles
         wid_rotation = 0
@@ -194,7 +196,7 @@ class PongGame(Widget):
             p = Particle()
             p.init(
                 pos=pos,
-                color=color,
+                r=r,g=g,b=b,
                 min_speed=min_speed,
                 max_speed=max_speed,
                 rotation=wid_rotation
@@ -205,7 +207,7 @@ class PongGame(Widget):
 
         self.particles.append(particle_group)
         if repeat == True:
-            Clock.schedule_once(partial(self.create_particles, pos, color, min_speed, max_speed), 0.05)
+            Clock.schedule_once(partial(self.create_particles, pos, r,g,b, min_speed, max_speed), 0.05)
 
     def on_touch_move(self, touch):
         if touch.x < self.width*1/3:
