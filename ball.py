@@ -4,6 +4,7 @@ from kivy.clock import Clock
 from random import randint, uniform as randfloat
 from kivy.vector import Vector
 from functools import partial
+from kivy.core.audio import SoundLoader
 
 class PongBall(Widget):
     # those 2 are used to make the ball bounce off the walls. Every time the values inside "vel" change, they will do the same (they are binded to "vel")
@@ -16,11 +17,15 @@ class PongBall(Widget):
     SPEED_Y = 10
     MAX_VEL = 15
     lastCollide = None  #! Do not use this to modify player variables!
+
+    crash_sound = SoundLoader().load("audio/BallCrash.wav")
     
     def move(self):
         self.pos = Vector(*self.vel) + self.pos
 
-    def reset(self, aiBall):
+    def reset(self, aiBall, firstTime=False):
+        if not firstTime:
+            self.crash_sound.play()
         self.pos = (
             self.parent.center_x - self.width/2,
             self.parent.center_y - self.height/2

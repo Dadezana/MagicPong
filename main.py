@@ -4,6 +4,7 @@ from kivy.properties import NumericProperty, ObjectProperty, BooleanProperty
 from kivy.clock import Clock
 from functools import partial
 from kivy.core.window import Window
+from kivy.core.audio import SoundLoader
 from random import randint
 
 from particle import Particle
@@ -36,6 +37,13 @@ class PongGame(Widget):
 
     particles = [[]]
 
+    red_powerup_sound = SoundLoader().load("audio/RedPow.wav")
+    yellow_powerup_sound = SoundLoader().load("audio/YellowTaken.wav")
+    purple_powerup_sound = SoundLoader().load("audio/paddleAcc.wav")
+    blue_powerup_sound = SoundLoader().load("audio/paddleSlow.wav")
+    ball_collision_sound = [SoundLoader().load("audio/pong_colliding.wav") for i in range(5)]
+    i = 0   # index of the collision sound to play
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.player1.r = self.player1.paddle_high.r = self.player1.paddle_low.r = 0.06
@@ -48,7 +56,9 @@ class PongGame(Widget):
         self.powerup_aiball.opacity = 0
         self.add_widget(self.powerup_aiball)
         Clock.schedule_once(self.create_powerup, randint(3, 10))
-        Clock.schedule_interval(self.check_ball_collisions, 2.0/60.0)
+        bgMusic = SoundLoader().load("audio/BgMusic.wav")
+        bgMusic.loop = True
+        bgMusic.play()
 
     def create_powerup(self, dt):
         Clock.schedule_once(self.create_powerup, randint(3, 10))
@@ -69,7 +79,10 @@ class PongGame(Widget):
         self.aiBall.move()
         self.powerup_aiball.move()
 
-    # check collisions with wall
+        # check collisions with wall
+        if self.check_ball_collisions():
+            self.play_ball_colliding_sound()
+
         self.aiBall.check_border_collisions(self)
         self.powerup_aiball.check_border_collisions(self)         
 
@@ -97,7 +110,7 @@ class PongGame(Widget):
                 self.player1.score += 1
                 self.areRulesInverted = False
                 self.ball.reset(self.aiBall)
-    # check collision with powerups
+        # check collision with powerups
         isPowerupTaken, p = self.ball.is_touching_powerup(self.powerups)
         if isPowerupTaken:
             # recalculate final position after a powerup is taken
@@ -111,6 +124,7 @@ class PongGame(Widget):
                     r=1, g=0, b=0,
                     repeat=True
                 )
+                self.red_powerup_sound.play()
 
             elif p.color == "green":
                 p.decrease_opacity(self.ball, 0.15, resetOpacity=True)
@@ -121,9 +135,11 @@ class PongGame(Widget):
                     pos=(p.x, p.y),
                     r=0.99, g=0.82, b=0.1
                 )
+                self.yellow_powerup_sound.play()
 
             elif p.color == "purple":
                 p.increase_player_speed(self.ball.lastCollide, 8, resetSpeed=True)
+                self.purple_powerup_sound.play()
 
             elif p.color == "blue":
                 if self.ball.lastCollide == self.player1:
@@ -131,6 +147,7 @@ class PongGame(Widget):
                 else:
                     pl = self.player1
                 p.increase_player_speed(pl, -4, resetSpeed=True)
+                self.blue_powerup_sound.play()
 
             self.remove_widget(p)
             self.powerups.remove(p)
@@ -144,13 +161,13 @@ class PongGame(Widget):
                 self.ball.vel_x, 
                 -self.ball.vel_y if (self.ball.y < self.height/2) and (self.ball.vel_y < 0) else self.ball.vel_y
             )
-            return
+            return True
         elif (self.ball.top > self.height-self.BORDER_WIDTH):
             self.ball.vel = (
                 self.ball.vel_x, 
                 -self.ball.vel_y if (self.ball.y > self.height/2) and (self.ball.vel_y > 0) else self.ball.vel_y
             )
-            return
+            return True
 
         if (self.ball.x < 0):
             if self.areRulesInverted:
@@ -160,9 +177,10 @@ class PongGame(Widget):
                 self.aiBall.set_speed(self.ball)
                 if self.isSinglePlayer:
                     self.player2.reset_paddle_pos()
-                return
+                return True
             self.player2.score += 1
             self.ball.reset(self.aiBall)
+            return True
 
         elif (self.ball.right > self.width):
             if self.areRulesInverted:
@@ -170,9 +188,16 @@ class PongGame(Widget):
                 self.areRulesInverted = False
                 if self.isSinglePlayer:
                     self.player2.reset_paddle_pos()
-                return
+                return True
             self.player1.score += 1
             self.ball.reset(self.aiBall)
+            return True
+        
+        return False
+
+    def play_ball_colliding_sound(self):
+        self.ball_collision_sound[self.i].play()
+        self.i = self.i+1 if self.i >= len(self.ball_collision_sound) else 0
 
     def handle_particles(self):
         for particle_group in self.particles:
@@ -244,7 +269,7 @@ class PongGame(Widget):
     def on_touch_down(self, touch):
         if not self.isGameStarted:
             self.isGameStarted = True
-            self.ball.reset(self.aiBall)
+            self.ball.reset(self.aiBall, firstTime=True)
             if self.ball.vel_x < 0 and self.isSinglePlayer:
                 self.aiBall.gotoxy(self.ball)
                 self.aiBall.set_speed(self.ball)

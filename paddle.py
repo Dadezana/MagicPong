@@ -3,6 +3,7 @@ from kivy.clock import Clock
 from kivy.vector import Vector
 from kivy.properties import NumericProperty, ObjectProperty
 from random import choice, randint, uniform as randfloat
+from kivy.core.audio import SoundLoader
 
 
 class PongPaddle(Widget):
@@ -16,6 +17,8 @@ class PongPaddle(Widget):
     g = NumericProperty(1)
     b = NumericProperty(1)
     speed_added = 0             # increase or decrease paddle speed when touching purple/blue powerups
+    ball_collision_sound = [SoundLoader().load("audio/pong_colliding.wav") for i in range(5)]
+    i = 0   # index of the collision sound to play
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -45,6 +48,7 @@ class PongPaddle(Widget):
         self.timer -= 1
         if self.timer <= 0:
             if self.collide_widget(ball):
+                self.play_ball_colliding_sound()
                 self.determine_ball_dir(ball, randomDir)
                 ball.vel = (-ball.vel_x, ball.vel_y)
                 self.timer = 60         # avoid the ball getting stuck in the paddle
@@ -52,6 +56,10 @@ class PongPaddle(Widget):
                     self.reset_paddle_pos()
                 return True
         return False
+
+    def play_ball_colliding_sound(self):
+        self.ball_collision_sound[self.i].play()
+        self.i = self.i+1 if self.i >= len(self.ball_collision_sound) else 0
 
     def determine_ball_dir(self, ball, randomDir=False):
 
